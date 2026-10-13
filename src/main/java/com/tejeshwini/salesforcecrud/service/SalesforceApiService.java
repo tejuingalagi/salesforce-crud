@@ -13,12 +13,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import jakarta.servlet.http.HttpSession;
+import java.util.Map;
+import java.util.HashMap;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Map;
 @Service
 public class SalesforceApiService {
@@ -31,50 +28,12 @@ public class SalesforceApiService {
 	    this.objectMapper = objectMapper;
 	}
 
-    public String getAccounts(HttpSession session)
+    public String getAccounts(HttpSession session, int offset)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String soql =
-                "SELECT Id, Name, Type, Industry FROM Account LIMIT 20";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
-                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .GET()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Salesforce API request failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return queryRecords(session, "Account",
+                "Id, Name, Type, Industry, Phone, Website", offset);
     }
-    
+
     public String createAccount(
             String name,
             String type,
@@ -226,50 +185,12 @@ public class SalesforceApiService {
         return "{\"success\":true,\"message\":\"Account deleted successfully\"}";
     }
     
-    public String getOpportunities(HttpSession session)
+    public String getOpportunities(HttpSession session, int offset)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String soql =
-                "SELECT Id, Name, StageName, CloseDate, Amount FROM Opportunity LIMIT 20";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
-                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .GET()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Opportunity API request failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return queryRecords(session, "Opportunity",
+                "Id, Name, StageName, CloseDate, Amount, Probability", offset);
     }
-    
+
     public String createOpportunity(
             String name,
             String stageName,
@@ -425,50 +346,12 @@ public class SalesforceApiService {
         return "{\"success\":true,\"message\":\"Opportunity deleted successfully\"}";
     }
     
-    public String getLeads(HttpSession session)
+    public String getLeads(HttpSession session, int offset)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String soql =
-                "SELECT Id, FirstName, LastName, Company, Status, Email FROM Lead LIMIT 20";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
-                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .GET()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Lead API request failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return queryRecords(session, "Lead",
+                "Id, FirstName, LastName, Company, Status, Email", offset);
     }
-    
+
     public String createLead(
             String firstName,
             String lastName,
@@ -626,50 +509,12 @@ public class SalesforceApiService {
 
         return "{\"success\":true,\"message\":\"Lead deleted successfully\"}";
     }
-    public String getContacts(HttpSession session)
+    public String getContacts(HttpSession session, int offset)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String soql =
-                "SELECT Id, FirstName, LastName, AccountId, Email, Phone FROM Contact LIMIT 20";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
-                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .GET()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Contact API request failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return queryRecords(session, "Contact",
+                "Id, FirstName, LastName, AccountId, Email, Phone", offset);
     }
-    
+
     public String createContact(
             String firstName,
             String lastName,
@@ -690,14 +535,15 @@ public class SalesforceApiService {
                     "Salesforce authentication required. Please login first.");
         }
 
-        String jsonBody =
-                "{"
-                + "\"FirstName\":\"" + firstName + "\","
-                + "\"LastName\":\"" + lastName + "\","
-                + "\"AccountId\":\"" + accountId + "\","
-                + "\"Email\":\"" + email + "\","
-                + "\"Phone\":\"" + phone + "\""
-                + "}";
+        Map<String, Object> contactData = new HashMap<>();
+
+        contactData.put("FirstName", firstName);
+        contactData.put("LastName", lastName);
+        contactData.put("AccountId", accountId);
+        contactData.put("Email", email);
+        contactData.put("Phone", phone);
+
+        String jsonBody = objectMapper.writeValueAsString(contactData);
 
         String url =
                 instanceUrl
@@ -829,50 +675,12 @@ public class SalesforceApiService {
         return "{\"success\":true,\"message\":\"Contact deleted successfully\"}";
     }
     
-    public String getCases(HttpSession session)
+    public String getCases(HttpSession session, int offset)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String soql =
-                "SELECT Id, CaseNumber, Subject, Status, Priority, Origin FROM Case LIMIT 20";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
-                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .GET()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Case API request failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return queryRecords(session, "Case",
+                "Id, CaseNumber, Subject, Status, Priority, Origin", offset);
     }
-    
+
     public String createCase(
             Map<String, Object> caseData,
             HttpSession session)
@@ -1011,4 +819,60 @@ public class SalesforceApiService {
         return "{\"success\":true,\"message\":\"Case deleted successfully\"}";
     }
     
+
+    private String queryRecords(
+            HttpSession session,
+            String objectName,
+            String fields,
+            int offset)
+            throws IOException, InterruptedException {
+
+        String accessToken =
+                (String) session.getAttribute("access_token");
+
+        String instanceUrl =
+                (String) session.getAttribute("instance_url");
+
+        if (accessToken == null || instanceUrl == null) {
+            throw new IllegalStateException(
+                    "Salesforce authentication required. Please login first.");
+        }
+
+        if (offset < 0 || offset > 2000 || offset % 20 != 0) {
+            throw new IllegalArgumentException(
+                    "Offset must be 0 to 2000 and a multiple of 20.");
+        }
+
+        String soql =
+                "SELECT " + fields +
+                " FROM " + objectName +
+                " ORDER BY CreatedDate DESC, Id DESC" +
+                " LIMIT 20 OFFSET " + offset;
+
+        String url =
+                instanceUrl
+                + "/services/data/v67.0/query/?q="
+                + URLEncoder.encode(soql, StandardCharsets.UTF_8);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + accessToken)
+                .GET()
+                .build();
+
+        HttpResponse<String> response =
+                httpClient.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException(
+                    objectName + " query failed. Status: "
+                    + response.statusCode()
+                    + ", Response: " + response.body());
+        }
+
+        return response.body();
+    }
+
 }

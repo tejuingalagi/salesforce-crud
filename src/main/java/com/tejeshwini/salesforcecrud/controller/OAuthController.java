@@ -61,50 +61,91 @@ public class OAuthController {
         return new RedirectView(authorizationUrl);
     }
 
+//    @GetMapping("/oauth2/callback")
+//    public String callback(
+//            @RequestParam("code") String code,
+//            @RequestParam("state") String state,
+//            HttpSession session) throws Exception {
+//
+//        // 1. Get saved values from session
+//        String savedState = (String) session.getAttribute("oauth_state");
+//        String codeVerifier = (String) session.getAttribute("code_verifier");
+//
+//        // 2. Validate state
+//        if (savedState == null || !savedState.equals(state)) {
+//            return "OAuth failed: Invalid state.";
+//        }
+//
+//        // 3. Validate code verifier
+//        if (codeVerifier == null) {
+//            return "OAuth failed: Code verifier not found.";
+//        }
+//
+//        // 4. Exchange authorization code for tokens
+//        Map<String, Object> tokenResponse =
+//                salesforceOAuthService.exchangeCodeForToken(
+//                        code,
+//                        codeVerifier);
+//
+//        // 5. Store tokens in session
+//        session.setAttribute(
+//                "access_token",
+//                tokenResponse.get("access_token"));
+//
+//        session.setAttribute(
+//                "refresh_token",
+//                tokenResponse.get("refresh_token"));
+//
+//        session.setAttribute(
+//                "instance_url",
+//                tokenResponse.get("instance_url"));
+//
+//        // 6. Remove temporary OAuth values
+//        session.removeAttribute("oauth_state");
+//        session.removeAttribute("code_verifier");
+//
+//        return "Salesforce OAuth authentication successful!";
+//    }
+    
     @GetMapping("/oauth2/callback")
-    public String callback(
+    public RedirectView callback(
             @RequestParam("code") String code,
             @RequestParam("state") String state,
             HttpSession session) throws Exception {
 
-        // 1. Get saved values from session
-        String savedState = (String) session.getAttribute("oauth_state");
-        String codeVerifier = (String) session.getAttribute("code_verifier");
+        String savedState =
+                (String) session.getAttribute("oauth_state");
 
-        // 2. Validate state
+        String codeVerifier =
+                (String) session.getAttribute("code_verifier");
+
         if (savedState == null || !savedState.equals(state)) {
-            return "OAuth failed: Invalid state.";
+            return new RedirectView(
+                    "http://localhost:5173/?oauthError=invalid_state");
         }
 
-        // 3. Validate code verifier
         if (codeVerifier == null) {
-            return "OAuth failed: Code verifier not found.";
+            return new RedirectView(
+                    "http://localhost:5173/?oauthError=missing_verifier");
         }
 
-        // 4. Exchange authorization code for tokens
         Map<String, Object> tokenResponse =
                 salesforceOAuthService.exchangeCodeForToken(
-                        code,
-                        codeVerifier);
-
-        // 5. Store tokens in session
-        session.setAttribute(
-                "access_token",
-                tokenResponse.get("access_token"));
+                        code, codeVerifier);
 
         session.setAttribute(
-                "refresh_token",
-                tokenResponse.get("refresh_token"));
+                "access_token", tokenResponse.get("access_token"));
 
         session.setAttribute(
-                "instance_url",
-                tokenResponse.get("instance_url"));
+                "refresh_token", tokenResponse.get("refresh_token"));
 
-        // 6. Remove temporary OAuth values
+        session.setAttribute(
+                "instance_url", tokenResponse.get("instance_url"));
+
         session.removeAttribute("oauth_state");
         session.removeAttribute("code_verifier");
 
-        return "Salesforce OAuth authentication successful!";
+        return new RedirectView("http://localhost:5173/");
     }
 
     private String generateCodeVerifier() {
