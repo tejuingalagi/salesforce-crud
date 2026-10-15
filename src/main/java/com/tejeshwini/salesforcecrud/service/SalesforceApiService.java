@@ -1,32 +1,36 @@
+
 package com.tejeshwini.salesforcecrud.service;
 
-import jakarta.servlet.http.HttpSession;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.HashMap;
 
-import java.util.Map;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpSession;
+
 @Service
 public class SalesforceApiService {
 
-	private final HttpClient httpClient;
-	private final ObjectMapper objectMapper;
+    private static final String API_PATH = "/services/data/v67.0";
 
-	public SalesforceApiService(ObjectMapper objectMapper) {
-	    this.httpClient = HttpClient.newHttpClient();
-	    this.objectMapper = objectMapper;
-	}
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper;
+
+    public SalesforceApiService(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    // ---------- Accounts ----------
 
     public String getAccounts(HttpSession session, int offset)
             throws IOException, InterruptedException {
@@ -34,661 +38,157 @@ public class SalesforceApiService {
                 "Id, Name, Type, Industry, Phone, Website", offset);
     }
 
-    public String createAccount(
-            String name,
-            String type,
-            String industry,
-            HttpSession session)
-            throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"Name\":\"" + name + "\","
-                + "\"Type\":\"" + type + "\","
-                + "\"Industry\":\"" + industry + "\""
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Account/";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 201) {
-            throw new IllegalStateException(
-                    "Account creation failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+    public String createAccount(String name, String type, String industry,
+            HttpSession session) throws IOException, InterruptedException {
+        return create("Account", fields(
+                "Name", name, "Type", type, "Industry", industry), session);
     }
-    
-    public String updateAccount(
-            String accountId,
-            String name,
-            String type,
-            String industry,
-            HttpSession session)
+
+    public String updateAccount(String id, String name, String type,
+            String industry, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"Name\":\"" + name + "\","
-                + "\"Type\":\"" + type + "\","
-                + "\"Industry\":\"" + industry + "\""
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Account/"
-                + accountId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .method(
-                        "PATCH",
-                        HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Account update failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Account updated successfully\"}";
+        return update("Account", id, fields(
+                "Name", name, "Type", type, "Industry", industry), session);
     }
-    
-    public String deleteAccount(
-            String accountId,
-            HttpSession session)
+
+    public String deleteAccount(String id, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Account/"
-                + accountId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .DELETE()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Account deletion failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Account deleted successfully\"}";
+        return delete("Account", id, session);
     }
-    
+
+    // ---------- Opportunities ----------
+
     public String getOpportunities(HttpSession session, int offset)
             throws IOException, InterruptedException {
         return queryRecords(session, "Opportunity",
                 "Id, Name, StageName, CloseDate, Amount, Probability", offset);
     }
 
-    public String createOpportunity(
-            String name,
-            String stageName,
-            String closeDate,
-            String amount,
-            HttpSession session)
+    public String createOpportunity(String name, String stageName,
+            String closeDate, String amount, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"Name\":\"" + name + "\","
-                + "\"StageName\":\"" + stageName + "\","
-                + "\"CloseDate\":\"" + closeDate + "\","
-                + "\"Amount\":" + amount
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Opportunity/";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 201) {
-            throw new IllegalStateException(
-                    "Opportunity creation failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return create("Opportunity", fields(
+                "Name", name,
+                "StageName", stageName,
+                "CloseDate", closeDate,
+                "Amount", toNumber(amount)), session);
     }
-    
-    public String updateOpportunity(
-            String opportunityId,
-            String name,
-            String stageName,
-            String closeDate,
-            String amount,
-            HttpSession session)
+
+    public String updateOpportunity(String id, String name, String stageName,
+            String closeDate, String amount, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"Name\":\"" + name + "\","
-                + "\"StageName\":\"" + stageName + "\","
-                + "\"CloseDate\":\"" + closeDate + "\","
-                + "\"Amount\":" + amount
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Opportunity/"
-                + opportunityId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .method(
-                        "PATCH",
-                        HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Opportunity update failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Opportunity updated successfully\"}";
+        return update("Opportunity", id, fields(
+                "Name", name,
+                "StageName", stageName,
+                "CloseDate", closeDate,
+                "Amount", toNumber(amount)), session);
     }
-    
-    public String deleteOpportunity(
-            String opportunityId,
-            HttpSession session)
+
+    public String deleteOpportunity(String id, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Opportunity/"
-                + opportunityId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .DELETE()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Opportunity deletion failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Opportunity deleted successfully\"}";
+        return delete("Opportunity", id, session);
     }
-    
+
+    // ---------- Leads ----------
+
     public String getLeads(HttpSession session, int offset)
             throws IOException, InterruptedException {
         return queryRecords(session, "Lead",
                 "Id, FirstName, LastName, Company, Status, Email", offset);
     }
 
-    public String createLead(
-            String firstName,
-            String lastName,
-            String company,
-            String status,
-            String email,
-            HttpSession session)
+    public String createLead(String firstName, String lastName, String company,
+            String status, String email, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"FirstName\":\"" + firstName + "\","
-                + "\"LastName\":\"" + lastName + "\","
-                + "\"Company\":\"" + company + "\","
-                + "\"Status\":\"" + status + "\","
-                + "\"Email\":\"" + email + "\""
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Lead/";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 201) {
-            throw new IllegalStateException(
-                    "Lead creation failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return create("Lead", fields(
+                "FirstName", firstName,
+                "LastName", lastName,
+                "Company", company,
+                "Status", status,
+                "Email", email), session);
     }
-    public String updateLead(
-            String leadId,
-            String firstName,
-            String lastName,
-            String company,
-            String status,
-            String email,
-            HttpSession session)
+
+    public String updateLead(String id, String firstName, String lastName,
+            String company, String status, String email, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"FirstName\":\"" + firstName + "\","
-                + "\"LastName\":\"" + lastName + "\","
-                + "\"Company\":\"" + company + "\","
-                + "\"Status\":\"" + status + "\","
-                + "\"Email\":\"" + email + "\""
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Lead/"
-                + leadId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .method(
-                        "PATCH",
-                        HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Lead update failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Lead updated successfully\"}";
+        return update("Lead", id, fields(
+                "FirstName", firstName,
+                "LastName", lastName,
+                "Company", company,
+                "Status", status,
+                "Email", email), session);
     }
-    
-    public String deleteLead(
-            String leadId,
-            HttpSession session)
+
+    public String deleteLead(String id, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Lead/"
-                + leadId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .DELETE()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Lead deletion failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Lead deleted successfully\"}";
+        return delete("Lead", id, session);
     }
+
+    // ---------- Contacts ----------
+
     public String getContacts(HttpSession session, int offset)
             throws IOException, InterruptedException {
         return queryRecords(session, "Contact",
                 "Id, FirstName, LastName, AccountId, Email, Phone", offset);
     }
 
-    public String createContact(
-            String firstName,
-            String lastName,
-            String accountId,
-            String email,
-            String phone,
-            HttpSession session)
+    public String createContact(String firstName, String lastName,
+            String accountId, String email, String phone, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        Map<String, Object> contactData = new HashMap<>();
-
-        contactData.put("FirstName", firstName);
-        contactData.put("LastName", lastName);
-        contactData.put("AccountId", accountId);
-        contactData.put("Email", email);
-        contactData.put("Phone", phone);
-
-        String jsonBody = objectMapper.writeValueAsString(contactData);
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Contact/";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 201) {
-            throw new IllegalStateException(
-                    "Contact creation failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return response.body();
+        return create("Contact", fields(
+                "FirstName", firstName,
+                "LastName", lastName,
+                "AccountId", accountId,
+                "Email", email,
+                "Phone", phone), session);
     }
-    
-    public String updateContact(
-            String contactId,
-            String firstName,
-            String lastName,
-            String accountId,
-            String email,
-            String phone,
-            HttpSession session)
+
+    public String updateContact(String id, String firstName, String lastName,
+            String accountId, String email, String phone, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String jsonBody =
-                "{"
-                + "\"FirstName\":\"" + firstName + "\","
-                + "\"LastName\":\"" + lastName + "\","
-                + "\"AccountId\":\"" + accountId + "\","
-                + "\"Email\":\"" + email + "\","
-                + "\"Phone\":\"" + phone + "\""
-                + "}";
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Contact/"
-                + contactId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .method(
-                        "PATCH",
-                        HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Contact update failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Contact updated successfully\"}";
+        return update("Contact", id, fields(
+                "FirstName", firstName,
+                "LastName", lastName,
+                "AccountId", accountId,
+                "Email", email,
+                "Phone", phone), session);
     }
-    
-    public String deleteContact(
-            String contactId,
-            HttpSession session)
+
+    public String deleteContact(String id, HttpSession session)
             throws IOException, InterruptedException {
-
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Contact/"
-                + contactId;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .DELETE()
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Contact deletion failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
-        }
-
-        return "{\"success\":true,\"message\":\"Contact deleted successfully\"}";
+        return delete("Contact", id, session);
     }
-    
+
+    // ---------- Cases ----------
+
     public String getCases(HttpSession session, int offset)
             throws IOException, InterruptedException {
         return queryRecords(session, "Case",
                 "Id, CaseNumber, Subject, Status, Priority, Origin", offset);
     }
 
-    public String createCase(
-            Map<String, Object> caseData,
-            HttpSession session)
+    public String createCase(Map<String, Object> caseData, HttpSession session)
             throws IOException, InterruptedException {
+        return create("Case", caseData, session);
+    }
 
+    public String updateCase(String id, Map<String, Object> caseData,
+            HttpSession session) throws IOException, InterruptedException {
+        return update("Case", id, caseData, session);
+    }
+
+    public String deleteCase(String id, HttpSession session)
+            throws IOException, InterruptedException {
+        return delete("Case", id, session);
+    }
+
+    // ---------- Shared helpers ----------
+
+    private record Auth(String accessToken, String instanceUrl) {}
+
+    private Auth auth(HttpSession session) {
         String accessToken =
                 (String) session.getAttribute("access_token");
-
         String instanceUrl =
                 (String) session.getAttribute("instance_url");
 
@@ -697,182 +197,158 @@ public class SalesforceApiService {
                     "Salesforce authentication required. Please login first.");
         }
 
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Case";
+        return new Auth(accessToken, instanceUrl);
+    }
 
-        String requestBody =
-                objectMapper.writeValueAsString(caseData);
+    // Builds a map from alternating key-value arguments.
+    private Map<String, Object> fields(Object... keyValues) {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        for (int i = 0; i < keyValues.length; i += 2) {
+            map.put((String) keyValues[i], keyValues[i + 1]);
+        }
+
+        return map;
+    }
+
+    private BigDecimal toNumber(String amount) {
+        if (amount == null || amount.isBlank()) {
+            return null;
+        }
+
+        try {
+            return new BigDecimal(amount.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Amount must be a valid number.");
+        }
+    }
+
+    // ---------- Generic CREATE ----------
+
+    private String create(String object, Map<String, Object> data,
+            HttpSession session) throws IOException, InterruptedException {
+
+        Auth auth = auth(session);
+
+        String requestBody = objectMapper.writeValueAsString(data);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
+                .uri(URI.create(auth.instanceUrl() + API_PATH
+                        + "/sobjects/" + object))
+                .header("Authorization", "Bearer " + auth.accessToken())
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(
+                request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 201) {
-            throw new IllegalStateException(
-                    "Case create failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
+            throw failure(object + " creation", response);
         }
 
         return response.body();
     }
-    
-    public String updateCase(
-            String caseId,
-            Map<String, Object> caseData,
-            HttpSession session)
+
+    // ---------- Generic UPDATE ----------
+
+    private String update(String object, String id,
+            Map<String, Object> data, HttpSession session)
             throws IOException, InterruptedException {
 
-        String accessToken =
-                (String) session.getAttribute("access_token");
+        Auth auth = auth(session);
 
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Case/"
-                + caseId;
-
-        String requestBody =
-        		objectMapper.writeValueAsString(caseData);
+        String requestBody = objectMapper.writeValueAsString(data);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
+                .uri(URI.create(auth.instanceUrl() + API_PATH
+                        + "/sobjects/" + object + "/" + id))
+                .header("Authorization", "Bearer " + auth.accessToken())
                 .header("Content-Type", "application/json")
-                .method(
-                        "PATCH",
+                .method("PATCH",
                         HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(
+                request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Case update failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
+            throw failure(object + " update", response);
         }
 
-        return "{\"success\":true,\"message\":\"Case updated successfully\"}";
+        return "{\"success\":true,\"message\":\""
+                + object + " updated successfully\"}";
     }
-    public String deleteCase(
-            String caseId,
-            HttpSession session)
+
+    // ---------- Generic DELETE ----------
+
+    private String delete(String object, String id, HttpSession session)
             throws IOException, InterruptedException {
 
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
-
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/sobjects/Case/"
-                + caseId;
+        Auth auth = auth(session);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
+                .uri(URI.create(auth.instanceUrl() + API_PATH
+                        + "/sobjects/" + object + "/" + id))
+                .header("Authorization", "Bearer " + auth.accessToken())
                 .DELETE()
                 .build();
 
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(
+                request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 204) {
-            throw new IllegalStateException(
-                    "Case delete failed. Status: "
-                    + response.statusCode()
-                    + ", Response: "
-                    + response.body());
+            throw failure(object + " deletion", response);
         }
 
-        return "{\"success\":true,\"message\":\"Case deleted successfully\"}";
+        return "{\"success\":true,\"message\":\""
+                + object + " deleted successfully\"}";
     }
-    
 
-    private String queryRecords(
-            HttpSession session,
-            String objectName,
-            String fields,
-            int offset)
+    // ---------- Query records with pagination ----------
+
+    private String queryRecords(HttpSession session, String objectName,
+            String selectedFields, int offset)
             throws IOException, InterruptedException {
 
-        String accessToken =
-                (String) session.getAttribute("access_token");
-
-        String instanceUrl =
-                (String) session.getAttribute("instance_url");
-
-        if (accessToken == null || instanceUrl == null) {
-            throw new IllegalStateException(
-                    "Salesforce authentication required. Please login first.");
-        }
+        Auth auth = auth(session);
 
         if (offset < 0 || offset > 2000 || offset % 20 != 0) {
             throw new IllegalArgumentException(
                     "Offset must be 0 to 2000 and a multiple of 20.");
         }
 
-        String soql =
-                "SELECT " + fields +
-                " FROM " + objectName +
-                " ORDER BY CreatedDate DESC, Id DESC" +
-                " LIMIT 20 OFFSET " + offset;
+        String soql = "SELECT " + selectedFields
+                + " FROM " + objectName
+                + " ORDER BY CreatedDate DESC, Id DESC"
+                + " LIMIT 20 OFFSET " + offset;
 
-        String url =
-                instanceUrl
-                + "/services/data/v67.0/query/?q="
+        String url = auth.instanceUrl() + API_PATH + "/query/?q="
                 + URLEncoder.encode(soql, StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
+                .header("Authorization", "Bearer " + auth.accessToken())
                 .GET()
                 .build();
 
-        HttpResponse<String> response =
-                httpClient.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(
+                request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    objectName + " query failed. Status: "
-                    + response.statusCode()
-                    + ", Response: " + response.body());
+            throw failure(objectName + " query", response);
         }
 
         return response.body();
     }
 
+    // ---------- Salesforce error helper ----------
+
+    private IllegalStateException failure(String action,
+            HttpResponse<String> response) {
+        return new IllegalStateException(
+                action + " failed. Status: " + response.statusCode()
+                        + ", Response: " + response.body());
+    }
 }

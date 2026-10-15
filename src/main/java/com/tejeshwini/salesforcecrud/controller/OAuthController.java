@@ -61,51 +61,6 @@ public class OAuthController {
         return new RedirectView(authorizationUrl);
     }
 
-//    @GetMapping("/oauth2/callback")
-//    public String callback(
-//            @RequestParam("code") String code,
-//            @RequestParam("state") String state,
-//            HttpSession session) throws Exception {
-//
-//        // 1. Get saved values from session
-//        String savedState = (String) session.getAttribute("oauth_state");
-//        String codeVerifier = (String) session.getAttribute("code_verifier");
-//
-//        // 2. Validate state
-//        if (savedState == null || !savedState.equals(state)) {
-//            return "OAuth failed: Invalid state.";
-//        }
-//
-//        // 3. Validate code verifier
-//        if (codeVerifier == null) {
-//            return "OAuth failed: Code verifier not found.";
-//        }
-//
-//        // 4. Exchange authorization code for tokens
-//        Map<String, Object> tokenResponse =
-//                salesforceOAuthService.exchangeCodeForToken(
-//                        code,
-//                        codeVerifier);
-//
-//        // 5. Store tokens in session
-//        session.setAttribute(
-//                "access_token",
-//                tokenResponse.get("access_token"));
-//
-//        session.setAttribute(
-//                "refresh_token",
-//                tokenResponse.get("refresh_token"));
-//
-//        session.setAttribute(
-//                "instance_url",
-//                tokenResponse.get("instance_url"));
-//
-//        // 6. Remove temporary OAuth values
-//        session.removeAttribute("oauth_state");
-//        session.removeAttribute("code_verifier");
-//
-//        return "Salesforce OAuth authentication successful!";
-//    }
     
     @GetMapping("/oauth2/callback")
     public RedirectView callback(
@@ -120,13 +75,13 @@ public class OAuthController {
                 (String) session.getAttribute("code_verifier");
 
         if (savedState == null || !savedState.equals(state)) {
-            return new RedirectView(
-                    "http://localhost:5173/?oauthError=invalid_state");
+        	return new RedirectView(
+        	        "/?oauthError=invalid_state");
         }
 
         if (codeVerifier == null) {
-            return new RedirectView(
-                    "http://localhost:5173/?oauthError=missing_verifier");
+        	return new RedirectView(
+        	        "/?oauthError=missing_verifier");
         }
 
         Map<String, Object> tokenResponse =
@@ -145,7 +100,7 @@ public class OAuthController {
         session.removeAttribute("oauth_state");
         session.removeAttribute("code_verifier");
 
-        return new RedirectView("http://localhost:5173/");
+        return new RedirectView("/");
     }
 
     private String generateCodeVerifier() {
@@ -195,4 +150,12 @@ public class OAuthController {
                 .withoutPadding()
                 .encodeToString(bytes);
     }
+    
+
+@GetMapping("/oauth/logout")
+public RedirectView logout(HttpSession session) {
+    session.invalidate();
+    return new RedirectView("/");
+}
+
 }
