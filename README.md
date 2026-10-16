@@ -73,10 +73,17 @@ For local development, the OAuth callback URL is:
 http://localhost:8080/oauth2/callback
 ```
 
-For deployment, set `SALESFORCE_REDIRECT_URI` to the deployed application's callback URL and configure the exact same URL in Salesforce.
+For deployment, configure the following environment variables in your hosting platform (Render):
+
+- `SALESFORCE_CLIENT_ID` — Your Salesforce consumer key.
+- `SALESFORCE_CLIENT_SECRET` — Your Salesforce consumer secret.
+- `SALESFORCE_REDIRECT_URI` — `https://salesforce-crud-jl8s.onrender.com/oauth2/callback`
+
+Register the exact same callback URL in your Salesforce External Client App OAuth settings.
+
+For local development, use `http://localhost:8080/oauth2/callback` as the callback URL.
 
 Keep credentials in environment variables. Never commit secrets or `.env` files to GitHub.
-
 ## Run Locally
 
 ### 1. Configure Salesforce credentials
