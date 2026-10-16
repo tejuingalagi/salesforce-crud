@@ -7,6 +7,10 @@ A web application for managing Salesforce records through OAuth 2.0 authenticati
 - **Deployed Application:** https://salesforce-crud-jl8s.onrender.com
 - **GitHub Repository:** https://github.com/tejuingalagi/salesforce-crud
 
+Sign in with an authorized Salesforce account using OAuth 2.0 to view and manage Salesforce records.
+
+**Note:** Create, update, and delete operations depend on Salesforce permissions, validation rules, and record relationships. Some records cannot be deleted while they are associated with other Salesforce records.
+
 ## Features
 
 - Salesforce login and logout
