@@ -2,6 +2,11 @@
 
 A web application for managing Salesforce records through OAuth 2.0 authentication with PKCE.
 
+## Live Demo
+
+- **Deployed Application:** https://salesforce-crud-jl8s.onrender.com
+- **GitHub Repository:** https://github.com/tejuingalagi/salesforce-crud
+
 ## Features
 
 - Salesforce login and logout
@@ -10,6 +15,7 @@ A web application for managing Salesforce records through OAuth 2.0 authenticati
 - Infinite scrolling with 20 records per batch
 - React frontend integrated with Spring Boot
 - Salesforce REST API integration
+- OAuth 2.0 authentication with PKCE
 
 ## Tech Stack
 
@@ -19,36 +25,61 @@ A web application for managing Salesforce records through OAuth 2.0 authenticati
 - Axios
 - Salesforce REST API
 - OAuth 2.0 with PKCE
+- Maven
+- Docker
 
 ## Project Structure
 
-- `src/` — Spring Boot backend
-- `frontend/` — React frontend
-- `pom.xml` — Maven configuration
-- `Dockerfile` — Deployment configuration
+```text
+salesforce-crud/
+├── frontend/                 # React frontend
+├── src/                      # Spring Boot backend
+│   └── main/
+│       ├── java/              # Backend source code
+│       └── resources/
+│           └── application.properties
+├── pom.xml                   # Maven configuration
+├── Dockerfile                # Docker deployment configuration
+├── .dockerignore
+└── README.md
+```
 
-## Run Locally
-
-### Prerequisites
+## Prerequisites
 
 - Java 21
 - Node.js and npm
 - Maven
-- Salesforce Developer Org and External Client App
+- Salesforce Developer Org
+- Salesforce External Client App configured for OAuth 2.0
 
-### Configure Salesforce
+## Configuration
 
-Set these environment variables before starting the backend:
+Set the following environment variables before running the application:
 
-- `SALESFORCE_CLIENT_ID`
-- `SALESFORCE_CLIENT_SECRET`
-- `SALESFORCE_REDIRECT_URI` (optional; defaults to the localhost callback URL)
+| Environment Variable | Purpose |
+|---|---|
+| `SALESFORCE_CLIENT_ID` | Salesforce consumer key |
+| `SALESFORCE_CLIENT_SECRET` | Salesforce consumer secret |
+| `SALESFORCE_REDIRECT_URI` | OAuth callback URL |
+| `PORT` | Server port; defaults to `8080` |
 
-The local callback URL is:
+For local development, the OAuth callback URL is:
 
-`http://localhost:8080/oauth2/callback`
+```text
+http://localhost:8080/oauth2/callback
+```
 
-### Build the Frontend
+For deployment, set `SALESFORCE_REDIRECT_URI` to the deployed application's callback URL and configure the exact same URL in Salesforce.
+
+Keep credentials in environment variables. Never commit secrets or `.env` files to GitHub.
+
+## Run Locally
+
+### 1. Configure Salesforce credentials
+
+Set `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, and, if needed, `SALESFORCE_REDIRECT_URI`.
+
+### 2. Build the React frontend
 
 From the project root, run:
 
@@ -58,27 +89,46 @@ npm ci
 npm run build
 ```
 
-Copy the contents of `frontend/dist/` into `src/main/resources/static/`.
+Copy the generated contents of `frontend/dist/` into `src/main/resources/static/` for the manual Spring Boot build.
 
-### Start the Backend
+### 3. Start the Spring Boot backend
 
-From the project root, run:
+Return to the project root and run:
 
 ```bash
 mvn spring-boot:run
 ```
 
-Open http://localhost:8080.
+Open:
 
-## Configuration
+```text
+http://localhost:8080
+```
 
-| Environment Variable | Purpose |
-|---|---|
-| `SALESFORCE_CLIENT_ID` | Salesforce consumer key |
-| `SALESFORCE_CLIENT_SECRET` | Salesforce consumer secret |
-| `SALESFORCE_REDIRECT_URI` | OAuth callback URL |
-| `PORT` | Server port |
+## Docker Deployment
+
+The root `Dockerfile` builds the React frontend, packages the generated frontend files with the Spring Boot application, and runs the application in a Java runtime container.
+
+Build the Docker image from the project root:
+
+```bash
+docker build -t salesforce-crud .
+```
+
+Run the container with your Salesforce credentials configured as environment variables:
+
+```bash
+docker run -p 8080:8080 \
+  -e SALESFORCE_CLIENT_ID=your_client_id \
+  -e SALESFORCE_CLIENT_SECRET=your_client_secret \
+  -e SALESFORCE_REDIRECT_URI=http://localhost:8080/oauth2/callback \
+  salesforce-crud
+```
+
+Replace the placeholder credentials with your own values. Do not commit actual credentials to source control.
 
 ## Security
 
-Keep Salesforce credentials in environment variables. Never commit credentials or `.env` files to GitHub.
+- Salesforce credentials are supplied through environment variables.
+- OAuth 2.0 with PKCE is used for the authentication flow.
+- Never commit client secrets or other credentials to GitHub.
